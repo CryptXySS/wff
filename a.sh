@@ -37,7 +37,9 @@ parted -s "$DEVICE" mkpart primary 513MiB 100%
 EFI_PART="${DEVICE}p1"
 ROOT_PART="${DEVICE}p2"
 
-sleep 2
+# FIX 🟡: race condition — partprobe + udevadm al posto di sleep 2
+partprobe "$DEVICE"
+udevadm settle
 
 msg "Formattazione EFI"
 mkfs.fat -F32 "$EFI_PART"
@@ -60,21 +62,24 @@ umount /mnt
 msg "Montaggio definitivo"
 mount -o compress=zstd,noatime,subvol=@ /dev/mapper/cryptroot /mnt
 mkdir -p /mnt/{home,.snapshots,boot}
-mount -o compress=zstd,noatime,subvol=@home /dev/mapper/cryptroot /mnt/home
+mount -o compress=zstd,noatime,subvol=@home     /dev/mapper/cryptroot /mnt/home
+mount -o compress=zstd,noatime,subvol=@snapshots /dev/mapper/cryptroot /mnt/.snapshots  # FIX 🟠
 mount "$EFI_PART" /mnt/boot
 
 msg "Rilevamento microcode CPU"
 CPU_VENDOR="$(awk -F: '/vendor_id/{print $2; exit}' /proc/cpuinfo)"
-PKGS="base linux linux-firmware btrfs-progs networkmanager vim efibootmgr dosfstools"
+
+# FIX 🔴: array invece di stringa per evitare il problema con IFS
+PKGS=(base linux linux-firmware btrfs-progs networkmanager vim efibootmgr dosfstools)
 
 if [[ "$CPU_VENDOR" == *Intel* ]]; then
-  PKGS="$PKGS intel-ucode"
+  PKGS+=(intel-ucode)
 elif [[ "$CPU_VENDOR" == *AMD* ]]; then
-  PKGS="$PKGS amd-ucode"
+  PKGS+=(amd-ucode)
 fi
 
 msg "Installazione sistema base"
-pacstrap /mnt $PKGS
+pacstrap /mnt "${PKGS[@]}"  # FIX 🔴
 
 genfstab -U /mnt >> /mnt/etc/fstab
 
