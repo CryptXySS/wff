@@ -34,8 +34,8 @@ parted -s "$DEVICE" mkpart primary fat32 1MiB 513MiB
 parted -s "$DEVICE" set 1 esp on
 parted -s "$DEVICE" mkpart primary 513MiB 100%
 
-EFI_PART="${DEVICE}p1"
-ROOT_PART="${DEVICE}p2"
+EFI_PART="${DEVICE}1"
+ROOT_PART="${DEVICE}2"
 
 # FIX 🟡: race condition — partprobe + udevadm al posto di sleep 2
 partprobe "$DEVICE"
