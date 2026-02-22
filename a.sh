@@ -6,7 +6,7 @@ IFS=$'\n\t'
 # Target fisso: /dev/nvme0n1
 # DISTRUTTIVO
 
-DEVICE="/dev/nvme0n1"
+DEVICE="/dev/sda"
 
 msg() { echo -e "\n==> $*"; }
 
